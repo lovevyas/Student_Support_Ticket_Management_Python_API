@@ -1,7 +1,6 @@
-class User:
-    def __init__(self, id, username, password, role):
-        self.id = id
-        self.username = username
-        self.password = password
-        self.role = role
+from pydantic import BaseModel
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
     

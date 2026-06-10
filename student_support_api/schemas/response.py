@@ -1,4 +1,4 @@
-from pydantic import BaseaModel
+from pydantic import BaseModel
 
 class APIResponse(BaseModel):
     success : bool
