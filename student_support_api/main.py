@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from schemas.user import UserLogin
 from schemas.ticket import TicketCreate
 from schemas.response import APIResponse
@@ -106,7 +106,64 @@ def userlogin(user: UserLogin):
         data=None
     )
     
-
+@app.put("/tickets/{ticket_id}",
+         response_model=APIResponse)
+def update_ticket_status(
+    ticket_id: int,
+    ticket_update: TicketUpdate,
+    current_user=Depends(get_current_user) ):
+    
+    if current_user["role"] != "support":
+     raise HTTPException(
+        status_code=403,
+        detail="Only support staff can update tickets"
+        )   
+    ticket_found = None
+    for ticket in tickets_db:
+        if ticket["id"] == ticket_id:
+            ticket_found = ticket
+            break
+    if ticket_found is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found"
+            )
+    ticket_found["status"] = ticket_update.status
+    return APIResponse(
+        success=True,
+        message="Ticket status updated successfully",
+        data=ticket_found
+        )
+    
+@app.get("/tickets/{ticket_id}",
+         response_model=APIResponse)
+def fetch_ticket(ticket_id: int,    
+        current_user=Depends(get_current_user)):
+    
+    ticket_found = None
+    for ticket in tickets_db:
+        if ticket["id"] == ticket_id:
+            ticket_found = ticket
+            break
+    if ticket_found is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found"
+            )
+        
+    if current_user["role"] == "student":        
+        if ticket_found["owner_id"] != current_user["id"]:
+            raise HTTPException(
+            status_code=403,
+            detail="Unauthorized from viewing the ticket"
+            )                                                    
+          
+    return APIResponse(
+        success=True,
+        message="Ticket fetched successfully",
+        data=ticket_found
+        )
+    
     
         
 
