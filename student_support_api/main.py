@@ -1,12 +1,19 @@
 from fastapi import FastAPI, Depends, HTTPException
 from schemas.user import UserLogin
-from schemas.ticket import TicketCreate
+from schemas.ticket import TicketCreate, TicketUpdate
 from schemas.response import APIResponse
 from utils.auth import get_current_user
 from utils.jwt_handler import create_access_token
 from utils.logger import logger
+from fastapi import Request
 
 app = FastAPI(title="Student Support Ticket API")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    response = await call_next(request)
+    logger.info(f"{request.method} {request.url.path} -> {response.status_code}")
+    return response
 
 tickets_db = []
 users_db = [
@@ -29,8 +36,7 @@ def get_ticket_by_id(ticket_id:int):
     for ticket in tickets_db:
         if ticket["id"] == ticket_id:
             ticket_found = ticket
-            return ticket_found
-            break
+            return ticket_found            
                         
     if ticket_found is None:        
         logger.warning(
@@ -41,7 +47,7 @@ def get_ticket_by_id(ticket_id:int):
             status_code=404,
             detail="Ticket not found"
             )
-        return None
+                
 
 @app.get("/")
 def home():
@@ -123,10 +129,9 @@ def userlogin(user: UserLogin):
     logger.warning(
     f"Failed login attempt for username: {user.username}"
     )        
-    return APIResponse(
-        success=False,
-        message="Invalid credentials",
-        data=None
+    raise HTTPException(           
+        status_code=401,
+        detail="Invalid credentials"
     )
     
 @app.put("/tickets/{ticket_id}", response_model=APIResponse)
